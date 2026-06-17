@@ -1,0 +1,10 @@
+# secrets / local config
+.env
+
+# build output
+/bin/
+*.exe
+
+# OS cruft
+.DS_Store
+Thumbs.db

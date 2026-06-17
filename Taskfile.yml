@@ -1,0 +1,64 @@
+# Taskfile.yml  -  https://taskfile.dev
+version: "3"
+
+dotenv: [".env"]
+
+vars:
+  COMPOSE: docker compose -f deploy/docker-compose.yml
+  DATABASE_URL: "postgres://app:secret@localhost:5432/vxpl?sslmode=disable"
+
+tasks:
+  up:
+    desc: Start infra (Postgres + GROBID + MinIO)
+    cmds:
+      - "{{.COMPOSE}} up -d"
+
+  up:gpu:
+    desc: Start infra + MinerU (NVIDIA GPU required)
+    cmds:
+      - "{{.COMPOSE}} --profile gpu up -d"
+
+  down:
+    desc: Stop infra
+    cmds:
+      - "{{.COMPOSE}} down"
+
+  logs:
+    cmds:
+      - "{{.COMPOSE}} logs -f"
+
+  migrate:up:
+    desc: Apply schema migrations
+    cmds:
+      - 'migrate -path db/migrations -database "{{.DATABASE_URL}}" up'
+
+  migrate:down:
+    cmds:
+      - 'migrate -path db/migrations -database "{{.DATABASE_URL}}" down 1'
+
+  river:migrate:
+    desc: Create River job tables
+    cmds:
+      - 'go run github.com/riverqueue/river/cmd/river migrate-up --database-url "{{.DATABASE_URL}}"'
+
+  sqlc:
+    cmds:
+      - sqlc generate
+
+  lint:
+    cmds:
+      - golangci-lint run
+
+  test:
+    cmds:
+      - go test ./...
+
+  api:
+    desc: Run the HTTP API
+    cmds:
+      - go run ./cmd/api
+
+  worker:
+    desc: Run the River worker
+    cmds:
+      - go run ./cmd/worker
